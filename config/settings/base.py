@@ -195,6 +195,7 @@ SPECTACULAR_SETTINGS = {
 default_cors_origins = [
     'http://localhost:4200',
     'http://127.0.0.1:4200',
+    'https://mediplus-master.vercel.app',
     'https://mediplus-master-fe.vercel.app',
 ]
 env_cors = os.getenv('CORS_ALLOWED_ORIGINS') or os.getenv('DJANGO_CORS_ALLOWED_ORIGINS')
@@ -204,13 +205,40 @@ if env_cors:
 else:
     CORS_ALLOWED_ORIGINS = default_cors_origins
 
+# Allow Vercel preview deployment URLs matching the mediplus-master project
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://mediplus-master(-[a-z0-9]+)?(-[a-z0-9_-]+)?\.vercel\.app$",
+]
+
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # CSRF Configuration
 # Django 4+ requires explicit schemes (https:// or http://) in CSRF_TRUSTED_ORIGINS
 default_csrf_origins = [
     'https://mediplus-master-be.vercel.app',
     'https://*.vercel.app',
+    'https://mediplus-master.vercel.app',
     'https://mediplus-master-fe.vercel.app',
     'http://localhost:4200',
     'http://127.0.0.1:4200',

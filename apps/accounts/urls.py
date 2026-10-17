@@ -22,6 +22,7 @@ router.register(r'accounts/permissions', PermissionCatalogViewSet, basename='adm
 router.register(r'admin/permissions', PermissionCatalogViewSet, basename='admin-permission-alias')
 
 urlpatterns = [
+    # Canonical auth endpoints
     path('auth/register/', RegisterView.as_view(), name='auth-register'),
     path('auth/login/', LoginView.as_view(), name='auth-login'),
     path('auth/logout/', LogoutView.as_view(), name='auth-logout'),
@@ -29,5 +30,12 @@ urlpatterns = [
     path('auth/password-reset/', PasswordResetRequestView.as_view(), name='auth-password-reset'),
     path('auth/password-reset-confirm/', PasswordResetConfirmView.as_view(), name='auth-password-reset-confirm'),
     path('auth/change-password/', ChangePasswordView.as_view(), name='auth-change-password'),
+
+    # Direct aliases for clients accessing /login/, /register/, /logout/, /me/
+    path('login/', LoginView.as_view(), name='auth-login-direct'),
+    path('register/', RegisterView.as_view(), name='auth-register-direct'),
+    path('logout/', LogoutView.as_view(), name='auth-logout-direct'),
+    path('me/', ProfileView.as_view(), name='auth-me-direct'),
+
     path('', include(router.urls)),
 ]
