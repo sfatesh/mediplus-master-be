@@ -111,7 +111,21 @@ env_db_url = os.getenv('DATABASE_URL')
 if env_db_url and not env_db_url.startswith('sqlite:///python-backend'):
     DATABASE_URL = env_db_url
 else:
-    db_file_path = (BASE_DIR / 'hospital.db').resolve().as_posix()
+    # On serverless (Vercel / AWS Lambda), the deployment filesystem is read-only.
+    # Copy hospital.db to /tmp so SQLite write operations succeed.
+    source_db = BASE_DIR / 'hospital.db'
+    if os.getenv('VERCEL') == '1' and source_db.exists():
+        import shutil
+        tmp_db = Path('/tmp/hospital.db')
+        try:
+            if not tmp_db.exists() or tmp_db.stat().st_size == 0:
+                shutil.copy2(source_db, tmp_db)
+            db_file_path = tmp_db.resolve().as_posix()
+        except Exception:
+            db_file_path = source_db.resolve().as_posix()
+    else:
+        db_file_path = source_db.resolve().as_posix()
+
     DATABASE_URL = f"sqlite:///{db_file_path}"
 
 DATABASES = {
