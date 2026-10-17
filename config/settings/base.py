@@ -13,13 +13,27 @@ load_dotenv(BASE_DIR / '.env')
 # Add backend root to sys.path
 sys.path.insert(0, str(BASE_DIR))
 
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-hospital-management-key-change-in-production')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY') or os.getenv('SECRET_KEY') or 'django-insecure-hospital-management-key-change-in-production'
 
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',') if host.strip()]
-if 'testserver' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append('testserver')
+# ALLOWED_HOSTS Configuration
+# Explicitly whitelist production host, Vercel preview domains, and local/test hosts.
+default_hosts = [
+    'localhost',
+    '127.0.0.1',
+    '[::1]',
+    'testserver',
+    'mediplus-master-be.vercel.app',
+    '.vercel.app',
+]
+
+env_allowed_hosts = os.getenv('DJANGO_ALLOWED_HOSTS') or os.getenv('ALLOWED_HOSTS')
+if env_allowed_hosts:
+    parsed_hosts = [host.strip() for host in env_allowed_hosts.split(',') if host.strip()]
+    ALLOWED_HOSTS = list(dict.fromkeys(default_hosts + parsed_hosts))
+else:
+    ALLOWED_HOSTS = default_hosts
 
 # Application definition
 DJANGO_APPS = [
@@ -93,8 +107,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # Database configuration
-db_file_path = (BASE_DIR / 'hospital.db').resolve().as_posix()
-DATABASE_URL = f"sqlite:///{db_file_path}"
+env_db_url = os.getenv('DATABASE_URL')
+if env_db_url and not env_db_url.startswith('sqlite:///python-backend'):
+    DATABASE_URL = env_db_url
+else:
+    db_file_path = (BASE_DIR / 'hospital.db').resolve().as_posix()
+    DATABASE_URL = f"sqlite:///{db_file_path}"
+
 DATABASES = {
     'default': dj_database_url.parse(
         DATABASE_URL,
@@ -172,13 +191,38 @@ SPECTACULAR_SETTINGS = {
 }
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    origin.strip() for origin in os.getenv(
-        'CORS_ALLOWED_ORIGINS',
-        'http://localhost:4200,http://127.0.0.1:4200'
-    ).split(',') if origin.strip()
+# Whitelist frontend domains (local Angular and deployed Vercel frontend)
+default_cors_origins = [
+    'http://localhost:4200',
+    'http://127.0.0.1:4200',
+    'https://mediplus-master-fe.vercel.app',
 ]
+env_cors = os.getenv('CORS_ALLOWED_ORIGINS') or os.getenv('DJANGO_CORS_ALLOWED_ORIGINS')
+if env_cors:
+    parsed_cors = [origin.strip() for origin in env_cors.split(',') if origin.strip()]
+    CORS_ALLOWED_ORIGINS = list(dict.fromkeys(default_cors_origins + parsed_cors))
+else:
+    CORS_ALLOWED_ORIGINS = default_cors_origins
+
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF Configuration
+# Django 4+ requires explicit schemes (https:// or http://) in CSRF_TRUSTED_ORIGINS
+default_csrf_origins = [
+    'https://mediplus-master-be.vercel.app',
+    'https://*.vercel.app',
+    'https://mediplus-master-fe.vercel.app',
+    'http://localhost:4200',
+    'http://127.0.0.1:4200',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+env_csrf = os.getenv('CSRF_TRUSTED_ORIGINS') or os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS')
+if env_csrf:
+    parsed_csrf = [origin.strip() for origin in env_csrf.split(',') if origin.strip()]
+    CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(default_csrf_origins + parsed_csrf))
+else:
+    CSRF_TRUSTED_ORIGINS = default_csrf_origins
 
 # Logging configuration
 LOGGING = {
