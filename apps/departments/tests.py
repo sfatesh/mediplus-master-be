@@ -129,3 +129,44 @@ class DepartmentAPITests(TestCase):
         data = response.json()
         self.assertEqual(data['department'], self.dept.id)
         self.assertEqual(data['department_name'], 'Neurology')
+
+    def test_admin_can_upload_doctor_photo(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_authenticate(user=self.admin_user)
+
+        # Valid JPEG magic bytes header: \xff\xd8\xff\xe0...
+        jpeg_content = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00' + b'dummyjpegdata'
+        photo_file = SimpleUploadedFile("doctor_avatar.jpg", jpeg_content, content_type="image/jpeg")
+
+        payload = {
+            'name': 'Dr. Marcus Welby',
+            'department': self.dept.id,
+            'position': 'Family Physician',
+            'qualification': 'MD',
+            'photo': photo_file
+        }
+        response = self.client.post('/api/v1/doctors/', payload, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        self.assertTrue(data['photo_url'])
+        self.assertIn('doctors/doc_', data['photo_url'])
+
+    def test_invalid_photo_magic_bytes_rejected(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_authenticate(user=self.admin_user)
+
+        # Text file pretending to be .jpg
+        fake_content = b'plain text not a jpeg'
+        photo_file = SimpleUploadedFile("fake.jpg", fake_content, content_type="image/jpeg")
+
+        payload = {
+            'name': 'Dr. Impostor',
+            'department': self.dept.id,
+            'position': 'Surgeon',
+            'qualification': 'MD',
+            'photo': photo_file
+        }
+        response = self.client.post('/api/v1/doctors/', payload, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        error_payload = response.json().get('error', response.json())
+        self.assertIn('photo', error_payload)

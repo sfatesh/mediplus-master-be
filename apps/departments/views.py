@@ -1,4 +1,5 @@
 from rest_framework import viewsets, filters
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from .models import Department, Doctor
@@ -41,6 +42,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 class DoctorViewSet(viewsets.ModelViewSet):
     queryset = Doctor.objects.all().select_related('department').order_by('name')
     serializer_class = DoctorSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['department', 'is_active']
